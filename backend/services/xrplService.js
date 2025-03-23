@@ -137,43 +137,178 @@ async function getNFTokenIDFromMint(mintTxResponse, metadataURI) {
 }
 
 /**
- * Mints an NFT and transfers it to a user's wallet
- * @param {string} metadataURI - URI of the metadata in hex format
- * @param {string} destinationAddress - Destination wallet address
- * @returns {Promise<Object>} - Complete operation response
+ * Mint an NFT and transfer it to a recipient
+ * @param {string} tokenURI - URI of the NFT metadata in hex format
+ * @param {string} destinationAddress - Address to transfer the NFT to
+ * @returns {Promise<Object>} - Transaction result
  */
-async function mintAndTransferNFT(metadataURI, destinationAddress) {
-  // First mint the NFT
-  const mintResponse = await mintNFT(metadataURI);
+async function mintAndTransferNFT(tokenURI, destinationAddress) {
+  const client = new Client(XRPL_SERVER);
+  await client.connect();
 
-  // Get the NFT ID using the transaction information
-  const nftID = await getNFTokenIDFromMint(mintResponse, metadataURI);
+  try {
+    // Ensure the URI is properly formatted
+    // Remove any 0x prefix if present
+    const formattedURI = tokenURI.startsWith("0x")
+      ? tokenURI.slice(2)
+      : tokenURI;
 
-  // Transfer the NFT to the destination address
-  const transferResponse = await transferNFT(nftID, destinationAddress);
+    console.log("Minting NFT with URI:", formattedURI);
+    console.log("Destination address:", destinationAddress);
 
-  return {
-    mintResponse,
-    transferResponse,
-    nftID,
-  };
+    // Check if any of the seed environment variables are defined
+    const seed =
+      process.env.XRPL_SEED || process.env.ACCOUNT_ADDRESS || process.env.SEED;
+    if (!seed) {
+      throw new Error("No XRPL seed found in environment variables");
+    }
+
+    console.log("Using seed (first 3 chars):", seed.substring(0, 3) + "...");
+
+    let wallet;
+    try {
+      wallet = Wallet.fromSeed(seed);
+    } catch (error) {
+      console.error("Error creating wallet from seed:", error);
+      throw new Error(`Invalid XRPL seed format: ${error.message}`);
+    }
+
+    console.log("Issuer wallet address:", wallet.address);
+
+    // Prepare NFTokenMint transaction
+    const transactionBlob = {
+      TransactionType: "NFTokenMint",
+      Account: wallet.address,
+      URI: formattedURI,
+      Flags: 8, // transferable
+      TransferFee: 0, // 0%
+      NFTokenTaxon: 0, // Required, but can be set to 0
+    };
+
+    // Sign and submit the transaction
+    const tx = await client.submitAndWait(transactionBlob, { wallet });
+    console.log("NFT minted successfully:", tx.result.meta.TransactionResult);
+
+    // Get the NFTokenID from the transaction metadata
+    const nftokenID = getNFTokenIDFromTx(tx.result.meta);
+
+    if (!nftokenID) {
+      throw new Error("Failed to retrieve NFTokenID from transaction metadata");
+    }
+
+    console.log("NFTokenID:", nftokenID);
+
+    // Create NFTokenCreateOffer transaction to transfer the NFT
+    const offerBlob = {
+      TransactionType: "NFTokenCreateOffer",
+      Account: wallet.address,
+      NFTokenID: nftokenID,
+      Amount: "0",
+      Flags: 1, // tfSellNFToken
+      Destination: destinationAddress,
+    };
+
+    // Sign and submit the offer transaction
+    const offerTx = await client.submitAndWait(offerBlob, { wallet });
+    console.log(
+      "Offer created successfully:",
+      offerTx.result.meta.TransactionResult
+    );
+
+    return {
+      mint_tx: tx.result,
+      offer_tx: offerTx.result,
+      nft_id: nftokenID,
+    };
+  } catch (error) {
+    console.error("Error in mintAndTransferNFT:", error);
+    throw error;
+  } finally {
+    client.disconnect();
+  }
 }
 
 /**
- * Fetches all NFTs for the configured account
- * @returns {Promise<Array>} - List of NFTs
+ * Extract NFTokenID from transaction metadata
+ * @param {Object} meta - Transaction metadata
+ * @returns {string|null} - NFTokenID or null if not found
  */
-async function fetchAccountNFTs() {
+function getNFTokenIDFromTx(meta) {
+  if (meta.AffectedNodes) {
+    for (const node of meta.AffectedNodes) {
+      if (
+        node.ModifiedNode &&
+        node.ModifiedNode.LedgerEntryType === "AccountRoot"
+      ) {
+        continue;
+      }
+
+      const nodeData = node.CreatedNode || node.ModifiedNode;
+      if (nodeData && nodeData.LedgerEntryType === "NFTokenPage") {
+        const nfts =
+          nodeData.FinalFields?.NFTokens || nodeData.NewFields?.NFTokens;
+        if (nfts && nfts.length > 0) {
+          return nfts[nfts.length - 1].NFToken.NFTokenID;
+        }
+      }
+    }
+  }
+
+  // Alternative method to find NFTokenID
+  if (meta.delivered_amount) {
+    return meta.delivered_amount.NFTokenID;
+  }
+
+  return null;
+}
+
+/**
+ * Fetch NFTs for a specific account
+ * @param {string} accountAddress - The XRPL account address to fetch NFTs for
+ * @returns {Promise<Array>} - Array of NFTs owned by the account
+ */
+async function fetchAccountNFTs(accountAddress) {
+  if (!accountAddress) {
+    throw new Error("Account address is required");
+  }
+
   const client = new Client(XRPL_SERVER);
   await client.connect();
 
   try {
     const response = await client.request({
       command: "account_nfts",
-      account: ACCOUNT_ADDRESS,
+      account: accountAddress,
     });
 
     return response.result.account_nfts;
+  } finally {
+    client.disconnect();
+  }
+}
+
+/**
+ * Check if an account exists and is funded
+ * @param {string} address - XRPL account address
+ * @returns {Promise<boolean>} - True if account exists and is funded
+ */
+async function checkAccountExists(address) {
+  const client = new Client(XRPL_SERVER);
+  await client.connect();
+
+  try {
+    const response = await client.request({
+      command: "account_info",
+      account: address,
+      strict: true,
+    });
+
+    return !!response.result.account_data;
+  } catch (error) {
+    if (error.data && error.data.error === "actNotFound") {
+      return false;
+    }
+    throw error;
   } finally {
     client.disconnect();
   }
@@ -184,4 +319,5 @@ module.exports = {
   transferNFT,
   mintAndTransferNFT,
   fetchAccountNFTs,
+  checkAccountExists,
 };

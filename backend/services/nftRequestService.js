@@ -9,7 +9,7 @@ const db = require("../config/database");
  */
 async function createNFTRequest(userId, walletAddress, metadata) {
   const query = `
-    INSERT INTO nft_requests (user_id, wallet_address, metadata)
+    INSERT INTO "nft-requests" (user_id, wallet_address, metadata)
     VALUES ($1, $2, $3)
     RETURNING *;
   `;
@@ -19,23 +19,28 @@ async function createNFTRequest(userId, walletAddress, metadata) {
 }
 
 /**
- * Get all NFT requests
- * @param {string} status - Filter by status (optional)
+ * Get all NFT requests with optional status filter
+ * @param {string} status - Optional status filter
  * @returns {Promise<Array>} - List of NFT requests
  */
-async function getAllNFTRequests(status = null) {
-  let query = "SELECT * FROM nft_requests";
-  const params = [];
+async function getAllNFTRequests(status) {
+  try {
+    let query = 'SELECT * FROM "nft-requests"';
+    const params = [];
 
-  if (status) {
-    query += " WHERE status = $1";
-    params.push(status);
+    if (status) {
+      query += " WHERE status = $1";
+      params.push(status);
+    }
+
+    query += " ORDER BY id DESC";
+
+    const result = await db.query(query, params);
+    return result.rows || [];
+  } catch (error) {
+    console.error("Database error in getAllNFTRequests:", error);
+    throw new Error(`Failed to get NFT requests: ${error.message}`);
   }
-
-  query += " ORDER BY created_at DESC";
-
-  const result = await db.query(query, params);
-  return result.rows;
 }
 
 /**
@@ -44,7 +49,7 @@ async function getAllNFTRequests(status = null) {
  * @returns {Promise<Object>} - NFT request
  */
 async function getNFTRequestById(requestId) {
-  const query = "SELECT * FROM nft_requests WHERE id = $1";
+  const query = 'SELECT * FROM "nft-requests" WHERE id = $1';
   const result = await db.query(query, [requestId]);
 
   if (result.rows.length === 0) {
@@ -62,8 +67,8 @@ async function getNFTRequestById(requestId) {
  */
 async function updateNFTRequestStatus(requestId, status) {
   const query = `
-    UPDATE nft_requests
-    SET status = $1, updated_at = CURRENT_TIMESTAMP
+    UPDATE "nft-requests"
+    SET status = $1
     WHERE id = $2
     RETURNING *;
   `;
@@ -84,8 +89,20 @@ async function updateNFTRequestStatus(requestId, status) {
  */
 async function getNFTRequestsByUserId(userId) {
   const query =
-    "SELECT * FROM nft_requests WHERE user_id = $1 ORDER BY created_at DESC";
+    'SELECT * FROM "nft-requests" WHERE user_id = $1 ORDER BY id DESC';
   const result = await db.query(query, [userId]);
+  return result.rows;
+}
+
+/**
+ * Get NFT requests by wallet address
+ * @param {string} walletAddress - Wallet address
+ * @returns {Promise<Array>} - List of wallet's NFT requests
+ */
+async function getNFTRequestsByWalletAddress(walletAddress) {
+  const query =
+    'SELECT * FROM "nft-requests" WHERE wallet_address = $1 ORDER BY id DESC';
+  const result = await db.query(query, [walletAddress]);
   return result.rows;
 }
 
@@ -95,4 +112,5 @@ module.exports = {
   getNFTRequestById,
   updateNFTRequestStatus,
   getNFTRequestsByUserId,
+  getNFTRequestsByWalletAddress,
 };

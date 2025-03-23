@@ -2,6 +2,69 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 2. Azul Futurista (Conectando Blockchain e Meio Ambiente) */
+.theme-futurista {
+	--azul-ciano: #00A8CC;
+	--verde-lima: #B5E61D;
+	--preto-espacial: #0D0D0D;
+	--cinza-prateado: #D4D4D4;
+	--roxo-eletrico: #7B2CBF;
+}
+
+/* 3. Terra Digital (Uma abordagem mais orgânica, mas ainda tech) */
+.theme-terra {
+	--verde-musgo: #556B2F;
+	--laranja-solar: #FFA500;
+	--azul-eletrico: #007BFF;
+	--cinza-chumbo: #3A3A3A;
+	--bege-areia: #E0C9A6;
+}
+
+/* Classes personalizadas para substituir as classes Tailwind que não estão funcionando */
+.app-bg {
+	background-color: #ffff;
+	color: #E0C9A6;
+	min-height: 100vh;
+}
+
+.content-bg {
+	background-color: #fff;
+}
+
+.text-primary-color {
+	color: #556B2F;
+}
+
+.text-accent-color {
+	color: #007BFF;
+}
+
+.text-secondary-color {
+	color: #FFA500;
+}
+
+.bg-primary-color {
+	background-color: #556B2F;
+}
+
+.bg-accent-color {
+	background-color: #007BFF;
+}
+
+.bg-secondary-color {
+	background-color: #FFA500;
+}
+
+.border-accent-color {
+	border-color: rgba(0, 123, 255, 0.1);
+}
+
+.gradient-header {
+	background: linear-gradient(to right, #556B2F, #FFA500);
+}
+
+/* Estilos originais */
 .container {
 	width: 80%;
 	margin: auto;
@@ -30,32 +93,6 @@
 	text-decoration: none;
 }
 
-.grid {
-	display: flex;
-	align-items: center;
-	flex-direction: column;
-}
-
-.card {
-	margin: 0.5rem;
-	padding: 0.7rem;
-	text-align: center;
-	color: #0070f3;
-	background-color: #fafafa;
-	text-decoration: none;
-	border: 1px solid #0070f3;
-	border-radius: 10px;
-	transition: color 0.15s ease, border-color 0.15s ease;
-	width: 100%;
-}
-
-.card:hover,
-.card:focus,
-.card:active {
-	cursor: pointer;
-	background-color: #f1f1f1;
-}
-
 .footer {
 	display: flex;
 	flex: 1;
@@ -82,19 +119,6 @@
 	.container {
 		width: 90%;
 	}
-}
-
-.flex-container {
-	display: flex;
-	flex-flow: row wrap;
-}
-
-.flex-container > div {
-	width: 100px;
-	margin: 10px;
-	text-align: center;
-	line-height: 75px;
-	font-size: 30px;
 }
 
 #console {

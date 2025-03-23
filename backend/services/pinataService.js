@@ -28,21 +28,32 @@ async function uploadFileToPinata(filePath, fileName) {
 }
 
 /**
- * Uploads JSON data to Pinata IPFS
+ * Upload JSON metadata to Pinata
  * @param {Object} jsonData - JSON data to upload
  * @returns {Promise<Object>} - Pinata response
  */
 async function uploadJSONToPinata(jsonData) {
-  const url = "https://api.pinata.cloud/pinning/pinJSONToIPFS";
+  try {
+    const url = "https://api.pinata.cloud/pinning/pinJSONToIPFS";
 
-  const headers = {
-    "Content-Type": "application/json",
-    pinata_api_key: PINATA_API_KEY,
-    pinata_secret_api_key: PINATA_SECRET_API_KEY,
-  };
+    // Ensure the JSON is properly formatted
+    const formattedJson =
+      typeof jsonData === "string" ? JSON.parse(jsonData) : jsonData;
 
-  const response = await axios.post(url, jsonData, { headers });
-  return response.data;
+    const response = await axios.post(url, formattedJson, {
+      headers: {
+        pinata_api_key: PINATA_API_KEY,
+        pinata_secret_api_key: PINATA_SECRET_API_KEY,
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("JSON uploaded to Pinata:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error uploading JSON to Pinata:", error);
+    throw new Error(`Failed to upload JSON to Pinata: ${error.message}`);
+  }
 }
 
 module.exports = {
