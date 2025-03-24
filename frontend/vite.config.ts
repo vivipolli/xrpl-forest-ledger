@@ -17,6 +17,18 @@ export default defineConfig({
   },
   build: {
     target: "esnext",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "react-router-dom"],
+          icons: ["react-icons"],
+        },
+      },
+    },
+  },
+  server: {
+    host: true,
+    port: 3000,
   },
   // IMP END - Bundler Issues
 });
