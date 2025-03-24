@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
 import { nftService, NFTRequest } from "../services/nft";
+import { useUserRole } from "../hooks/useUserRole";
+import { Navigate } from "react-router-dom";
 
 const AdminNFTRequests: React.FC = () => {
+  const { isAdmin } = useUserRole();
   const [requests, setRequests] = useState<NFTRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string | undefined>(undefined);
@@ -10,6 +13,12 @@ const AdminNFTRequests: React.FC = () => {
     null
   );
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Redirect non-admin users
+  if (!isAdmin()) {
+    toast.error("You don't have permission to access this page");
+    return <Navigate to="/" replace />;
+  }
 
   useEffect(() => {
     fetchRequests();

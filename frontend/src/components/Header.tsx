@@ -86,18 +86,16 @@ function Header() {
             >
               Profile
             </Link>
-            {isAdmin() && (
-              <Link
-                to="/admin/nft-requests"
-                className={`text-white hover:text-primary-color font-medium transition-colors ${
-                  location.pathname === "/admin/nft-requests"
-                    ? "border-b-2 border-primary-color pb-1"
-                    : ""
-                }`}
-              >
-                Admin NFT Requests
-              </Link>
-            )}
+            <Link
+              to="/admin/nft-requests"
+              className={`text-white hover:text-primary-color font-medium transition-colors ${
+                location.pathname === "/admin/nft-requests"
+                  ? "border-b-2 border-primary-color pb-1"
+                  : ""
+              }`}
+            >
+              Admin NFT Requests
+            </Link>
           </nav>
           <div className="flex items-center space-x-4">
             {userInfo && userRole && (
