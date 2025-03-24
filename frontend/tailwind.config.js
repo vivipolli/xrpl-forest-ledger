@@ -5,53 +5,37 @@ module.exports = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#556B2F", // verde-musgo como cor primária
-          light: "#6a8439",
-          dark: "#445624",
-        },
-        secondary: {
-          DEFAULT: "#FFA500", // laranja-solar como cor secundária
-          light: "#ffb733",
-          dark: "#cc8400",
+          DEFAULT: "#2E8B57",
+          light: "#3DAA6D",
+          dark: "#1F6E45",
         },
         background: {
-          DEFAULT: "#3A3A3A", // cinza-chumbo como fundo
-          light: "#4a4a4a",
-          dark: "#2a2a2a",
+          DEFAULT: "#000017",
+          light: "#000030",
+          dark: "#000010",
         },
         text: {
-          DEFAULT: "#E0C9A6", // bege-areia para textos
-          light: "#e8d7bd",
-          dark: "#c9b08f",
-        },
-        accent: {
-          DEFAULT: "#007BFF", // azul-eletrico como cor auxiliar/accent
-          light: "#3395ff",
-          dark: "#0062cc",
-        },
-        // Mantendo a cor primária original para compatibilidade
-        "primary-legacy": {
-          DEFAULT: "#45803B",
-          light: "#569c49",
-          dark: "#386832",
+          DEFAULT: "#FFFFFF",
+          light: "#FFFFFF",
+          dark: "#E0E0E0",
         },
       },
       backgroundColor: {
-        page: "#ffff", // cinza-chumbo para fundo de página
-        card: "#ffff", // versão mais clara do cinza-chumbo para cards
-        input: "#4a4a4a", // versão mais clara do cinza-chumbo para inputs
+        page: "#000017",
+        card: "#000025",
+        input: "#000035",
       },
       textColor: {
-        default: "#E0C9A6", // bege-areia como texto padrão
-        muted: "#c9b08f", // versão mais escura do bege-areia para texto secundário
-        inverted: "#3A3A3A", // cinza-chumbo para texto em fundos claros
+        default: "#FFFFFF",
+        muted: "#CCCCCC",
+        inverted: "#000017",
       },
       borderColor: {
-        default: "#5a5a5a", // versão mais clara do cinza-chumbo para bordas
+        default: "#2E8B57",
       },
       gradientColorStops: {
-        "terra-start": "#556B2F", // verde-musgo
-        "terra-end": "#FFA500", // laranja-solar
+        "primary-start": "#2E8B57",
+        "primary-end": "#1F6E45",
       },
     },
   },

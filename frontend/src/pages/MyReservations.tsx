@@ -7,6 +7,7 @@ import ReservationCard from "../components/ReservationCard";
 import EmptyReservationCard from "../components/EmptyReservationCard";
 import HeaderForm from "../components/HeaderForm";
 import LoadingSpinner from "../components/LoadingSpinner";
+import ConnectWalletCard from "../components/ConnectWalletCard";
 
 function MyReservations() {
   const [connected, setConnected] = useState<boolean>(() => {
@@ -60,16 +61,24 @@ function MyReservations() {
           },
         ]);
       } else {
-        // Transform existing NFTs into reservations
+        // Transform existing NFTs into reservations with proper metadata
         const nftReservations: Reservation[] = nfts.map((nft) => ({
-          id: nft.address,
+          id: nft.NFTokenID || "unknown",
           status: "approved" as ReservationStatus,
           createdAt: new Date().toISOString().split("T")[0],
           nftData: {
-            imageUrl: nft.image,
-            title: nft.name,
-            description: nft.description,
-            attributes: nft.attributes,
+            imageUrl: nft.metadata?.image?.replace(
+              "ipfs://",
+              "https://gateway.pinata.cloud/ipfs/"
+            ),
+            title: nft.metadata?.name || "Unnamed NFT",
+            description:
+              nft.metadata?.description || "No description available",
+            attributes:
+              nft.metadata?.attributes?.reduce((acc, attr) => {
+                acc[attr.trait_type] = attr.value;
+                return acc;
+              }, {} as Record<string, string>) || {},
             issueDate: new Date().toISOString().split("T")[0],
           },
         }));
@@ -248,6 +257,7 @@ function MyReservations() {
                   title: `Carbon Credit Certificate Request #${nftRequest.id}`,
                   description:
                     "Environmental Preservation Certificate (Pending Approval)",
+                  attributes: {},
                   issueDate: new Date().toISOString().split("T")[0],
                 },
               }
@@ -295,8 +305,13 @@ function MyReservations() {
 
       {loading ? (
         <LoadingSpinner />
+      ) : !connected ? (
+        <ConnectWalletCard
+          connectWallet={connectWallet}
+          message="Connect your XRPL wallet to view and create preservation certificates."
+        />
       ) : (
-        <div className="w-full">{renderReservations()}</div>
+        <div className="w-full max-w-2xl mx-auto">{renderReservations()}</div>
       )}
     </div>
   );

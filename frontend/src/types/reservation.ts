@@ -2,14 +2,14 @@ export type ReservationStatus = "approved" | "pending" | "rejected" | "empty";
 
 export interface NFTAttribute {
   trait_type: string;
-  value: string | number;
+  value: string;
 }
 
 export interface NFTData {
   imageUrl: string;
   title: string;
   description: string;
-  attributes?: NFTAttribute[];
+  attributes: Record<string, string>;
   issueDate: string;
 }
 

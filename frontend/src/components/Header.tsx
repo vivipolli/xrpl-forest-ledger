@@ -29,7 +29,7 @@ function Header() {
     };
 
     getUserInfo();
-  }, [provider, setShowRoleModal]);
+  }, [provider, setShowRoleModal, web3Auth]);
 
   const handleLogout = async () => {
     await logout();
@@ -48,7 +48,17 @@ function Header() {
                   : ""
               }`}
             >
-              My Reservations
+              Home
+            </Link>
+            <Link
+              to="/my-nfts"
+              className={`text-white hover:text-primary-color font-medium transition-colors ${
+                location.pathname === "/my-nfts"
+                  ? "border-b-2 border-primary-color pb-1"
+                  : ""
+              }`}
+            >
+              My NFTs
             </Link>
             <Link
               to="/profile"

@@ -85,9 +85,7 @@ const AdminNFTRequests: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-green-800 mb-6">
-        NFT Preservation Requests
-      </h1>
+      <h1 className="text-3xl font-bold text-green-800 mb-6">NFT Requests</h1>
 
       {/* Filter Controls */}
       <div className="mb-6 flex flex-wrap gap-2">
@@ -178,7 +176,7 @@ const AdminNFTRequests: React.FC = () => {
 
       {/* Requests Table */}
       {!loading && requests.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="bg-white rounded-lg shadow-md overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -196,7 +194,7 @@ const AdminNFTRequests: React.FC = () => {
                 </th>
                 <th
                   scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell"
                 >
                   Wallet
                 </th>
@@ -205,12 +203,6 @@ const AdminNFTRequests: React.FC = () => {
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
                   Status
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Created
                 </th>
                 <th
                   scope="col"
@@ -229,41 +221,38 @@ const AdminNFTRequests: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {request.user_id}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
                     <span
                       className="truncate block max-w-xs"
                       title={request.wallet_address}
                     >
-                      {request.wallet_address.substring(0, 8)}...
+                      {request.wallet_address.substring(0, 6)}...
                       {request.wallet_address.substring(
-                        request.wallet_address.length - 8
+                        request.wallet_address.length - 4
                       )}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {getStatusBadge(request.status)}
                   </td>
-                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(request.created_at).toLocaleDateString()}
-                  </td> */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
                       onClick={() => openModal(request)}
-                      className="text-green-600 hover:text-green-900 mr-3"
+                      className="text-green-600 hover:text-green-900 mr-3 underline"
                     >
-                      View Details
+                      View
                     </button>
                     {request.status === "pending" && (
                       <>
                         <button
                           onClick={() => handleApprove(request.id)}
-                          className="text-blue-600 hover:text-blue-900 mr-3"
+                          className="text-blue-600 hover:text-blue-900 mr-3 underline"
                         >
                           Approve
                         </button>
                         <button
                           onClick={() => handleReject(request.id)}
-                          className="text-red-600 hover:text-red-900"
+                          className="text-red-600 hover:text-red-900 underline"
                         >
                           Reject
                         </button>
@@ -339,22 +328,6 @@ const AdminNFTRequests: React.FC = () => {
                     <p className="mt-1">
                       {getStatusBadge(selectedRequest.status)}
                     </p>
-                  </div>
-                  <div className="mb-4">
-                    <h3 className="text-sm font-medium text-gray-500">
-                      Created At
-                    </h3>
-                    {/* <p className="mt-1 text-sm text-gray-900">
-                      {new Date(selectedRequest.created_at).toLocaleString()}
-                    </p> */}
-                  </div>
-                  <div className="mb-4">
-                    <h3 className="text-sm font-medium text-gray-500">
-                      Updated At
-                    </h3>
-                    {/* <p className="mt-1 text-sm text-gray-900">
-                      {new Date(selectedRequest.updated_at).toLocaleString()}
-                    </p> */}
                   </div>
                 </div>
 

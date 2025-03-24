@@ -6,6 +6,8 @@ const path = require("path");
 require("dotenv").config();
 const { Wallet } = require("xrpl");
 const { createNFTRequestsTable } = require("./services/dbService");
+const axios = require("axios");
+const { Client } = require("xrpl");
 
 const {
   uploadFileToPinata,
@@ -127,36 +129,57 @@ app.post("/mint-nft", upload.single("image"), async (req, res) => {
   }
 });
 
-// Fetch NFTs endpoint
+// Get NFTs for an account
 app.get("/nfts/:address", async (req, res) => {
   try {
     const { address } = req.params;
 
     if (!address) {
-      return res.status(400).json({ error: "Account address is required" });
+      return res.status(400).json({ error: "Address is required" });
     }
 
-    // Check if the account exists
-    try {
-      const nfts = await fetchAccountNFTs(address);
-      res.json(nfts);
-    } catch (error) {
-      // Handle specific XRPL errors
-      if (error.message && error.message.includes("Account not found")) {
-        return res.status(404).json({
-          error: "Account not found",
-          message:
-            "This XRPL account does not exist or has not been activated yet.",
-        });
-      }
+    const nfts = await fetchAccountNFTs(address);
 
-      throw error; // Re-throw for general error handling
-    }
+    // For each NFT, fetch metadata if it has an IPFS URI
+    const nftsWithMetadata = await Promise.all(
+      nfts.map(async (nft) => {
+        try {
+          if (nft.decodedURI && nft.decodedURI.startsWith("ipfs://")) {
+            const ipfsHash = nft.decodedURI.replace("ipfs://", "");
+            const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
+
+            try {
+              const response = await axios.get(ipfsUrl);
+              return {
+                ...nft,
+                metadata: response.data,
+              };
+            } catch (error) {
+              console.error(
+                `Error fetching metadata from IPFS: ${error.message}`
+              );
+              return {
+                ...nft,
+                metadata: null,
+              };
+            }
+          }
+
+          return nft;
+        } catch (error) {
+          console.error(`Error processing NFT: ${error.message}`);
+          return nft;
+        }
+      })
+    );
+
+    res.json({ nfts: nftsWithMetadata });
   } catch (error) {
     console.error("Error fetching NFTs:", error);
-    res
-      .status(500)
-      .json({ error: "Error fetching NFTs", details: error.message });
+    res.status(500).json({
+      error: "Error fetching NFTs",
+      details: error.message,
+    });
   }
 });
 
@@ -296,25 +319,23 @@ app.post("/admin/nft-requests/:id/approve", async (req, res) => {
     // Upload metadata to IPFS
     const metadataResponse = await uploadJSONToPinata(request.metadata);
     const metadataURI = `ipfs://${metadataResponse.IpfsHash}`;
-
-    // Properly encode the URI for XRPL
-    // The URI needs to be hex encoded but without the 0x prefix
     const hexURI = Buffer.from(metadataURI).toString("hex").toUpperCase();
 
     console.log("Original URI:", metadataURI);
     console.log("Hex encoded URI:", hexURI);
 
-    // Mint and transfer the NFT
+    // Mint and create offer for the NFT
     const nftResponse = await mintAndTransferNFT(
       hexURI,
       request.wallet_address
     );
 
-    // Update the request status
-    await updateNFTRequestStatus(requestId, "minted");
+    // Update the request status to "approved" (not "minted" yet)
+    await updateNFTRequestStatus(requestId, "approved");
 
     res.status(200).json({
-      message: "NFT request approved and minted successfully!",
+      message: "NFT request approved and offer created successfully!",
+      note: "The recipient needs to accept the offer to receive the NFT.",
       metadataURI: metadataURI,
       hexURI: hexURI,
       nftResponse: nftResponse,
@@ -434,6 +455,255 @@ app.post("/token/trust-line", async (req, res) => {
     res
       .status(500)
       .json({ error: "Error creating trust line", details: error.message });
+  }
+});
+
+// Get pending NFT offers for a wallet
+app.get("/nfts/:address/pending-offers", async (req, res) => {
+  try {
+    const { address } = req.params;
+
+    // Validate the address
+    if (!address || typeof address !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid wallet address",
+      });
+    }
+
+    console.log(`Fetching pending offers for account ${address}`);
+
+    // Connect to XRPL
+    const client = new Client("wss://s.altnet.rippletest.net:51233");
+    await client.connect();
+
+    try {
+      // Primeiro, buscar todos os NFTs que a conta possui
+      const nftsResponse = await client.request({
+        command: "account_nfts",
+        account: address,
+        ledger_index: "validated",
+      });
+
+      console.log(
+        `Found ${
+          nftsResponse.result.account_nfts?.length || 0
+        } NFTs for account ${address}`
+      );
+
+      // Agora, buscar ofertas para cada NFT
+      const pendingOffers = [];
+
+      // Também buscar ofertas usando account_offers
+      const offersResponse = await client.request({
+        command: "account_offers",
+        account: address,
+        ledger_index: "validated",
+      });
+
+      console.log(
+        `Found ${
+          offersResponse.result.offers?.length || 0
+        } offers for account ${address}`
+      );
+
+      // Adicionar ofertas de account_offers
+      if (offersResponse.result.offers) {
+        for (const offer of offersResponse.result.offers) {
+          pendingOffers.push({
+            index: offer.seq || "",
+            nft_id: offer.NFTokenID || "",
+            offer_details: offer,
+          });
+        }
+      }
+
+      // Buscar ofertas para o endereço em outros NFTs
+      // Isso é mais complexo e pode exigir consultar a conta do emissor
+      // Vamos usar o endereço do emissor do seu arquivo .env
+      const issuerAddress = process.env.SEED;
+      if (issuerAddress) {
+        const issuerNftsResponse = await client.request({
+          command: "account_nfts",
+          account: issuerAddress,
+          ledger_index: "validated",
+        });
+
+        console.log(
+          `Found ${
+            issuerNftsResponse.result.account_nfts?.length || 0
+          } NFTs for issuer account`
+        );
+
+        // Para cada NFT do emissor, verificar se há ofertas para o endereço do usuário
+        for (const nft of issuerNftsResponse.result.account_nfts || []) {
+          try {
+            const sellOffersResponse = await client.request({
+              command: "nft_sell_offers",
+              nft_id: nft.NFTokenID,
+              ledger_index: "validated",
+            });
+
+            if (sellOffersResponse.result.offers) {
+              for (const offer of sellOffersResponse.result.offers) {
+                if (offer.destination === address) {
+                  pendingOffers.push({
+                    index: offer.nft_offer_index,
+                    nft_id: nft.NFTokenID,
+                    offer_details: offer,
+                  });
+                }
+              }
+            }
+          } catch (error) {
+            console.error(
+              `Error fetching sell offers for NFT ${nft.NFTokenID}:`,
+              error.message
+            );
+          }
+        }
+      }
+
+      console.log(
+        `Found a total of ${pendingOffers.length} pending offers for account ${address}`
+      );
+
+      res.json({ pendingOffers });
+    } finally {
+      await client.disconnect();
+    }
+  } catch (error) {
+    console.error("Error fetching pending offers:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch pending offers",
+      error: error.message,
+    });
+  }
+});
+
+// Generate Xumm link for accepting an NFT offer
+app.get("/nft-offers/:offerId/xumm-link", async (req, res) => {
+  try {
+    const { offerId } = req.params;
+
+    // Validate the offer ID
+    if (!offerId || typeof offerId !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid offer ID",
+      });
+    }
+
+    console.log(`Generating Xumm link for offer ${offerId}`);
+
+    // Não precisamos verificar a oferta no XRPL, apenas criar o payload para o Xumm
+    // Create a payload for the Xumm API
+    const payload = {
+      txjson: {
+        TransactionType: "NFTokenAcceptOffer",
+        NFTokenSellOffer: offerId, // Usando SellOffer em vez de BuyOffer
+      },
+    };
+
+    // Send the payload to the Xumm API
+    const xummResponse = await axios.post(
+      "https://xumm.app/api/v1/platform/payload",
+      payload,
+      {
+        headers: {
+          "X-API-Key": process.env.XUMM_API_KEY,
+          "X-API-Secret": process.env.XUMM_API_SECRET,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (
+      !xummResponse.data ||
+      !xummResponse.data.next ||
+      !xummResponse.data.next.always
+    ) {
+      throw new Error("Failed to generate Xumm link");
+    }
+
+    res.json({
+      xummLink: xummResponse.data.next.always,
+      message: "Scan the QR code with your Xumm wallet to accept the NFT offer",
+    });
+  } catch (error) {
+    console.error("Error generating Xumm link:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to generate Xumm link",
+      error: error.message,
+    });
+  }
+});
+
+// Check the status of an NFT offer
+app.get("/nft-offers/:offerId/status", async (req, res) => {
+  try {
+    const { offerId } = req.params;
+
+    // Validate the offer ID
+    if (!offerId || typeof offerId !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid offer ID",
+      });
+    }
+
+    console.log(`Checking status for offer ${offerId}`);
+
+    // Connect to XRPL
+    const client = new Client("wss://s.altnet.rippletest.net:51233");
+    await client.connect();
+
+    try {
+      // Verificar se a oferta ainda existe usando o comando ledger_entry
+      try {
+        const offerResponse = await client.request({
+          command: "ledger_entry",
+          index: offerId,
+          ledger_index: "validated",
+        });
+
+        // Se a oferta ainda existe, está pendente
+        if (offerResponse.result && offerResponse.result.node) {
+          return res.json({
+            status: "pending",
+            message: "The offer is still pending acceptance",
+          });
+        }
+      } catch (error) {
+        // Se recebermos um erro entryNotFound, a oferta não existe mais (pode ter sido aceita)
+        if (error.message && error.message.includes("entryNotFound")) {
+          return res.json({
+            status: "accepted",
+            message: "The offer has been accepted or cancelled",
+          });
+        }
+
+        // Outros erros
+        console.error("Error checking offer in ledger:", error);
+      }
+
+      // Se chegamos aqui, vamos assumir que a oferta foi aceita
+      res.json({
+        status: "accepted",
+        message: "The offer appears to have been accepted or cancelled",
+      });
+    } finally {
+      await client.disconnect();
+    }
+  } catch (error) {
+    console.error("Error checking offer status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to check offer status",
+      error: error.message,
+    });
   }
 });
 

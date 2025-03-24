@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Layout from "./components/Layout";
 import Profile from "./pages/Profile";
 import MyReservations from "./pages/MyReservations";
+import MyNFTs from "./pages/MyNFTs";
 import { Toaster } from "react-hot-toast";
 import AdminNFTRequests from "./pages/AdminNFTRequests";
 import AdminRoute from "./components/AdminRoute";
@@ -61,6 +62,7 @@ function App() {
                 <Layout>
                   <Routes>
                     <Route path="/" element={<MyReservations />} />
+                    <Route path="/my-nfts" element={<MyNFTs />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route
                       path="/admin/nft-requests"

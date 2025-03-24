@@ -35,11 +35,11 @@ function Login() {
       <div className="relative z-10 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 bg-black/30 p-8 rounded-xl backdrop-blur-sm">
           <div>
-            <h2 className="mt-6 text-center text-4xl font-extrabold text-white">
-              Welcome
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-white">
+              Welcome to Forest Ledger
             </h2>
             <p className="mt-2 text-center text-lg text-gray-200">
-              Login to continue with XRPL Wallet
+              Regenerating Forests, On-Chain. Powered by Xrp Ledger
             </p>
           </div>
           <div className="mt-8">

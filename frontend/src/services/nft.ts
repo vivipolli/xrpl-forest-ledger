@@ -21,16 +21,22 @@ interface MintNFTResponse {
 }
 
 export interface NFTResponse {
-  address: string;
-  name: string;
-  symbol: string;
-  uri: string;
-  image: string;
-  attributes: {
-    trait_type: string;
-    value: string | number;
-  }[];
-  description: string;
+  Flags: number;
+  Issuer: string;
+  NFTokenID: string;
+  NFTokenTaxon: number;
+  URI: string;
+  nft_serial: number;
+  decodedURI: string;
+  metadata: {
+    name: string;
+    description: string;
+    image: string;
+    attributes: Array<{
+      trait_type: string;
+      value: string;
+    }>;
+  };
 }
 
 export interface NFTRequest {
@@ -49,6 +55,31 @@ export interface NFTRequest {
   status: "pending" | "approved" | "rejected" | "minted";
   // created_at: string;
   //updated_at: string;
+}
+
+export interface PendingOffer {
+  index: string;
+  nft_id: string;
+  metadata?: {
+    name: string;
+    description: string;
+    image: string;
+    attributes: {
+      trait_type: string;
+      value: string | number;
+    }[];
+  };
+}
+
+export interface XummLinkResponse {
+  xummLink: string;
+  message: string;
+}
+
+export interface OfferStatusResponse {
+  status: "pending" | "accepted";
+  message: string;
+  offer?: any;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -145,6 +176,7 @@ export const nftService = {
    */
   async getNFTs(address: string): Promise<NFTResponse[]> {
     try {
+      console.log(`Fetching NFTs for account ${address}`);
       const response = await fetch(`${API_BASE_URL}/nfts/${address}`);
 
       if (!response.ok) {
@@ -153,16 +185,92 @@ export const nftService = {
       }
 
       const data = await response.json();
-      return data.map((nft: any) => ({
-        id: nft.NFTokenID,
-        address: nft.NFTokenID,
-        name: nft.name || "Environmental Certificate",
-        description: nft.description || "XRPL Environmental Certificate",
-        image: nft.image || "/placeholder-image.jpg",
-        attributes: nft.attributes || {},
-      }));
+
+      // Verificar se data é um array
+      if (Array.isArray(data)) {
+        console.log(`Found ${data.length} NFTs for account ${address}`);
+        return data;
+      }
+
+      // Se data.nfts for um array, retorne-o
+      if (data.nfts && Array.isArray(data.nfts)) {
+        console.log(`Found ${data.nfts.length} NFTs for account ${address}`);
+        return data.nfts;
+      }
+
+      // Se não for um array, retorne um array vazio
+      console.log(
+        `Found 0 NFTs for account ${address} (unexpected response format)`
+      );
+      console.log("Response data:", data);
+      return [];
     } catch (error) {
       console.error("Error fetching NFTs:", error);
+      return []; // Retorna um array vazio em caso de erro
+    }
+  },
+
+  /**
+   * Busca todas as ofertas pendentes para uma carteira
+   */
+  async getPendingOffers(
+    address: string
+  ): Promise<{ pendingOffers: PendingOffer[] }> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/nfts/${address}/pending-offers`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch pending offers");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching pending offers:", error);
+      return { pendingOffers: [] };
+    }
+  },
+
+  /**
+   * Gera um link Xumm para aceitar uma oferta de NFT
+   */
+  async getXummLink(offerId: string): Promise<XummLinkResponse> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/nft-offers/${offerId}/xumm-link`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to generate Xumm link");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error generating Xumm link:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Verifica o status de uma oferta de NFT
+   */
+  async checkOfferStatus(offerId: string): Promise<OfferStatusResponse> {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/nft-offers/${offerId}/status`
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to check offer status");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error checking offer status:", error);
       throw error;
     }
   },

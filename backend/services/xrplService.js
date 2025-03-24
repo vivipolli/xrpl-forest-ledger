@@ -148,7 +148,6 @@ async function mintAndTransferNFT(tokenURI, destinationAddress) {
 
   try {
     // Ensure the URI is properly formatted
-    // Remove any 0x prefix if present
     const formattedURI = tokenURI.startsWith("0x")
       ? tokenURI.slice(2)
       : tokenURI;
@@ -215,10 +214,25 @@ async function mintAndTransferNFT(tokenURI, destinationAddress) {
       offerTx.result.meta.TransactionResult
     );
 
+    // Get the offer ID from the transaction metadata
+    const offerID = getOfferIDFromTx(offerTx.result.meta);
+
+    if (!offerID) {
+      throw new Error("Failed to retrieve OfferID from transaction metadata");
+    }
+
+    console.log("OfferID:", offerID);
+
+    // We can't accept our own offer, so we'll return the offer ID
+    // The recipient will need to accept the offer using their own wallet
     return {
       mint_tx: tx.result,
       offer_tx: offerTx.result,
       nft_id: nftokenID,
+      offer_id: offerID,
+      status: "offer_created",
+      message:
+        "NFT minted and offer created successfully. The recipient needs to accept the offer.",
     };
   } catch (error) {
     console.error("Error in mintAndTransferNFT:", error);
@@ -254,34 +268,72 @@ function getNFTokenIDFromTx(meta) {
     }
   }
 
-  // Alternative method to find NFTokenID
-  if (meta.delivered_amount) {
-    return meta.delivered_amount.NFTokenID;
+  return null;
+}
+
+/**
+ * Extract OfferID from transaction metadata
+ * @param {Object} meta - Transaction metadata
+ * @returns {string|null} - OfferID or null if not found
+ */
+function getOfferIDFromTx(meta) {
+  if (meta.AffectedNodes) {
+    for (const node of meta.AffectedNodes) {
+      const nodeData = node.CreatedNode || node.ModifiedNode;
+      if (nodeData && nodeData.LedgerEntryType === "NFTokenOffer") {
+        return nodeData.LedgerIndex;
+      }
+    }
   }
 
   return null;
 }
 
 /**
- * Fetch NFTs for a specific account
- * @param {string} accountAddress - The XRPL account address to fetch NFTs for
- * @returns {Promise<Array>} - Array of NFTs owned by the account
+ * Fetch all NFTs owned by an account
+ * @param {string} address - XRPL account address
+ * @returns {Promise<Array>} - List of NFTs
  */
-async function fetchAccountNFTs(accountAddress) {
-  if (!accountAddress) {
-    throw new Error("Account address is required");
-  }
-
+async function fetchAccountNFTs(address) {
   const client = new Client(XRPL_SERVER);
   await client.connect();
 
   try {
-    const response = await client.request({
+    console.log(`Fetching NFTs for account: ${address}`);
+
+    // Get account NFTs
+    const nftResponse = await client.request({
       command: "account_nfts",
-      account: accountAddress,
+      account: address,
     });
 
-    return response.result.account_nfts;
+    const nfts = nftResponse.result.account_nfts || [];
+    console.log(`Found ${nfts.length} NFTs for account ${address}`);
+
+    // Process NFTs to decode URIs
+    const processedNfts = nfts.map((nft) => {
+      try {
+        if (nft.URI) {
+          const uri = Buffer.from(nft.URI, "hex").toString();
+          return {
+            ...nft,
+            decodedURI: uri,
+          };
+        }
+        return nft;
+      } catch (error) {
+        console.error(`Error decoding URI for NFT: ${error.message}`);
+        return nft;
+      }
+    });
+
+    return processedNfts;
+  } catch (error) {
+    console.error(`Error fetching NFTs for account ${address}:`, error);
+    if (error.data && error.data.error === "actNotFound") {
+      return [];
+    }
+    throw error;
   } finally {
     client.disconnect();
   }
