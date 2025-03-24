@@ -60,6 +60,10 @@ export interface NFTRequest {
 export interface PendingOffer {
   index: string;
   nft_id: string;
+  offer_details?: {
+    owner: string;
+    destination: string;
+  };
   metadata?: {
     name: string;
     description: string;
