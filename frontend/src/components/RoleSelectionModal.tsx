@@ -15,6 +15,9 @@ const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({
     // Save the role in localStorage
     localStorage.setItem("userRole", selectedRole);
     onClose();
+
+    // Force a page refresh to update the header
+    window.location.reload();
   };
 
   if (!isOpen) return null;

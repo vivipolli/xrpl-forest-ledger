@@ -31,6 +31,22 @@ function Header() {
     getUserInfo();
   }, [provider, setShowRoleModal, web3Auth]);
 
+  // Force a re-render when userRole changes in localStorage
+  useEffect(() => {
+    const handleStorageChange = () => {
+      // This will trigger a re-render when localStorage changes
+      const currentRole = localStorage.getItem("userRole");
+      if (currentRole !== userRole) {
+        window.location.reload(); // Simple way to force a complete refresh
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [userRole]);
+
   const handleLogout = async () => {
     await logout();
   };
