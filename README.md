@@ -60,23 +60,54 @@ This project was developed for Bizthon with the goal of bringing transparency an
 - **Scalable Solution**: Ready for implementation across different regions
 - **Verification System**: Multi-step approval process ensures data integrity
 
+## 🔗 XRPL Integration Details
+
+ForestLedger leverages the XRP Ledger (XRPL) as its blockchain foundation through several key components:
+
+### Token Management
+
+- **Custom Token Creation**: Issues a native "FLT" (ForestLedger Token) on XRPL using a two-wallet system (cold/hot) for secure token management
+- **Trust Line Configuration**: Establishes proper trust lines between wallets for token transfers
+- **Balance Tracking**: Monitors token balances across user wallets
+
+### NFT Certification
+
+- **Environmental NFT Minting**: Creates unique NFTs representing verified environmental reserves
+- **Metadata Storage**: Stores environmental data and satellite imagery on IPFS with references on XRPL
+- **Transfer Mechanism**: Enables secure transfer of NFT certificates to landowner wallets
+
+### Wallet Integration
+
+- **Xumm Wallet Support**: Seamless authentication and transaction signing via Xumm
+- **SignIn Payload**: Simplified user authentication through Xumm's SignIn feature
+- **Transaction Tracking**: Real-time monitoring of transaction status
+
+### Request Processing
+
+- **Approval Workflow**: Two-step verification before minting environmental NFTs
+- **Status Tracking**: Monitors NFT requests through pending, approved, and minted states
+- **Wallet Association**: Links NFT requests to specific XRPL wallet addresses
+
 ## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- XRPL Foundation for blockchain infrastructure
-- Satellite imagery providers
-- Environmental preservation partners
-
 ## 🔮 Future Roadmap
 
-- [ ] Enhanced validation mechanisms
-- [ ] Multi-chain support
-- [ ] Marketplace for environmental NFTs
-- [ ] Mobile application development
+- [ ] **Token Economy System**: Implementation of FLT token utility:
+  - Token distribution for supporters
+  - Direct donations to forest NFT owners
+  - Participation in Forest Guardians DAO
+  - Access to pro-forest staking pools
+- [ ] **Enhanced validation mechanisms**:
+  - Improved user role management and security
+  - Defined certification request rules and validation criteria
+  - Multi-level approval workflows for environmental verification
+- [ ] **Multi-chain support**:
+  - Deployment on multiple blockchain networks
+  - Cross-chain interoperability for NFTs and token transfers
+- [ ] **Marketplace for environmental NFTs**: Platform for trading special seasonal NFTs to celebrate land protection milestones and incentives
 
 ---
 
-Built with �� for the planet 🌍
+Built with ❤️ for the planet 🌍
